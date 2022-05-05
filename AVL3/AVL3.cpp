@@ -1,68 +1,93 @@
-﻿// AVL tree implementation in C
+﻿#include <iostream>
 
-#include <stdio.h>
-#include <stdlib.h>
+using namespace std;
 
-// Create Node
 struct Node {
     int d;
     int bal;
     Node* left;
     Node* right;
+
+    Node(int d) { this->d = d; this->right = this->left = NULL; this->bal = 0; }
 };
 
+void fileInput(Node*& tr, const char* filename);
 
-int max(int a, int b) {
-    return (a > b) ? a : b;
+Node* rightRotate(Node* a);
+Node* leftRotate(Node* a);
+int fixBalance(Node* N);
+
+Node* insertNode(Node* node, int d);
+Node* insertBalance(Node* node);
+
+Node* deleteMaxValueNode(Node* p, Node* t);
+Node* deleteNode(Node* root, int d);
+Node* balanceDelete(Node* root);
+
+void printPreOrder(Node* root);
+
+int main() {
+    Node* root = NULL;
+
+    const char* filename = "text.txt";
+    fileInput(root, filename);
+
+    printPreOrder(root);
+
+    return 0;
 }
 
-int height(Node* N) {
-    if (!N) return 0;
+void fileInput(Node*& p, const char* filename) {
+    FILE* f;
+    
+    if (!(f = fopen(filename, "r"))) {
+        cout << "File wasn't opened";
+        return;
+    }
 
-    return  max( height(N->left), height(N->right) ) + 1 ;
+    int a;
+
+    while (fscanf(f, "%d", &a) && a)
+        p = a > 0 ? insertNode(p, a) : deleteNode(p, -a);
+
+    fclose(f);
 }
 
 int fixBalance(Node* N) {
     if (!N) return 0;
-    return  height(N->left) - height(N->right);
+
+    int bal_l = N->left ? N->left->bal : -1;
+    int bal_r = N->right ? N->right->bal : -1;
+
+    return  bal_l - bal_r;
 }
+Node* rightRotate(Node* a) {
+    Node* b = a->left;
+    Node* T1 = b->right;
 
-Node* newNode(int d) {
-    Node* node = new Node;
-    node->d = d;
-    node->left = node->right = NULL;
-    node->bal = 0;
-    return (node);
+    b->right = a;
+    a->left = T1;
+
+    a->bal = fixBalance(a);
+    b->bal = fixBalance(b);
+
+    return b;
 }
+Node* leftRotate(Node* a) {
+    Node* b = a->right;
+    Node* T1 = b->left;
 
-Node* rightRotate(Node*& y) {
-    Node* x = y->left;
-    Node* T1 = x->right;
+    b->left = a;
+    a->right = T1;
 
-    x->right = y;
-    y->left = T1;
+    a->bal = fixBalance(a);
+    b->bal = fixBalance(b);
 
-    y->bal = fixBalance(y);
-    x->bal = fixBalance(x);
-
-    return x;
-}
-
-Node* leftRotate(Node* x) {
-    Node* y = x->right;
-    Node* T1 = y->left;
-
-    y->left = x;
-    x->right = T1;
-
-    x->bal = fixBalance(x);
-    y->bal = fixBalance(y);
-
-    return y;
+    return b;
 }
 
 Node* insertNode(Node* node, int d) {
-    if (!node) return newNode(d);
+    if (!node) return new Node(d);
 
     if (d < node->d)
         node->left = insertNode(node->left, d);
@@ -71,9 +96,12 @@ Node* insertNode(Node* node, int d) {
     else
         return node;
 
+    return insertBalance(node);
+}
+Node* insertBalance(Node* node) {
     node->bal = fixBalance(node);
 
-    if (node->bal > 1 && node->left->bal > 0) 
+    if (node->bal > 1 && node->left->bal > 0)
         return rightRotate(node);
 
     if (node->bal < -1 && node->right->bal < 0)
@@ -92,51 +120,33 @@ Node* insertNode(Node* node, int d) {
     return node;
 }
 
-Node* maxValueNode(Node* node) {
-    Node* current = node;
+Node* deleteMaxValueNode(Node* p, Node* t) {
+    Node* q;
 
-    while (current->right)
-        current = current->right;
-
-    return current;
-}
-
-Node* deleteNode(Node* root, int d) {
-    if (root == NULL)
-        return root;
-
-    if (d < root->d)
-        root->left = deleteNode(root->left, d);
-
-    else if (d > root->d)
-        root->right = deleteNode(root->right, d);
-
+    if (p->right) p->right = deleteMaxValueNode(p->right, t);
     else {
-        if (!root->left || !root->right) {
-            
-            Node* temp = root->left ? root->left : root->right;
-
-            if (!temp) {
-                temp = root;
-                root = NULL;
-            }
-            else
-                *root = *temp;
-            
-            delete temp;
-        }
-        else {
-            Node* temp = maxValueNode(root->left);
-
-            root->d = temp->d;
-
-            root->left = deleteNode(root->left, temp->d);
-        }
+        t->d = p->d;
+        q = p; p = p->left;
+        delete q;
     }
 
-    if (root == NULL)
-        return root;
+    return p;
+}
+Node* deleteNode(Node* root, int d) {
+    if (root == NULL) return root;
+    if (d < root->d) root->left = deleteNode(root->left, d);
+    else if (d > root->d) root->right = deleteNode(root->right, d);
+    else if (root->left) root->left = deleteMaxValueNode(root->left, root);
+    else {
+        Node* q = root; root = root->right;
+        delete q;
+    }
 
+    if (root == NULL) return root;
+
+    return root ? balanceDelete(root) : root;
+}
+Node* balanceDelete(Node* root) {
     root->bal = fixBalance(root);
 
     if (root->bal > 1 && root->left->bal >= 0)
@@ -158,30 +168,10 @@ Node* deleteNode(Node* root, int d) {
     return root;
 }
 
-// Print the tree
-void printPreOrder(struct Node* root) {
-    if (root != NULL) {
+void printPreOrder(Node* root) {
+    if (root) {
         printf("%d ", root->d);
         printPreOrder(root->left);
         printPreOrder(root->right);
     }
-}
-
-int main() {
-    Node* root = NULL;
-
-    root = insertNode(root, 2);
-    root = insertNode(root, 1);
-    root = insertNode(root, 7);
-    root = insertNode(root, 4);
-    root = insertNode(root, 5);
-    root = insertNode(root, 3);
-    root = insertNode(root, 8);
-
-
-    root = deleteNode(root, 3);
-
-    printPreOrder(root);
-
-    return 0;
 }
