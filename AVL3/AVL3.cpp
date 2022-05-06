@@ -101,18 +101,18 @@ Node* insertNode(Node* node, int d) {
 Node* insertBalance(Node* node) {
     node->bal = fixBalance(node);
 
-    if (node->bal > 1 && node->left->bal > 0)
+    if (node->bal == 2 && node->left->bal > 0)
         return rightRotate(node);
 
-    if (node->bal < -1 && node->right->bal < 0)
+    if (node->bal == -2 && node->right->bal < 0)
         return leftRotate(node);
 
-    if (node->bal > 1 && node->left->bal < 0) {
+    if (node->bal == 2 && node->left->bal < 0) {
         node->left = leftRotate(node->left);
         return rightRotate(node);
     }
 
-    if (node->bal < -1 && node->right->bal > 0) {
+    if (node->bal == -2 && node->right->bal > 0) {
         node->right = rightRotate(node->right);
         return leftRotate(node);
     }
@@ -142,25 +142,23 @@ Node* deleteNode(Node* root, int d) {
         delete q;
     }
 
-    if (root == NULL) return root;
-
     return root ? balanceDelete(root) : root;
 }
 Node* balanceDelete(Node* root) {
     root->bal = fixBalance(root);
 
-    if (root->bal > 1 && root->left->bal >= 0)
+    if (root->bal == 2 && root->left->bal >= 0)
         return rightRotate(root);
 
-    if (root->bal > 1 && root->left->bal < 0) {
+    if (root->bal == 2 && root->left->bal < 0) {
         root->left = leftRotate(root->left);
         return rightRotate(root);
     }
 
-    if (root->bal < -1 && root->right->bal <= 0)
+    if (root->bal == -2 && root->right->bal <= 0)
         return leftRotate(root);
 
-    if (root->bal < -1 && root->right->bal > 0) {
+    if (root->bal == -2 && root->right->bal > 0) {
         root->right = rightRotate(root->right);
         return leftRotate(root);
     }
